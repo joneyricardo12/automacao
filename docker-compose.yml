@@ -78,8 +78,8 @@ services:
       - DB_TYPE=sqlite
       - DB_SQLITE_DATABASE=/data/database.sqlite
       - N8N_BASIC_AUTH_ACTIVE=true
-      - N8N_BASIC_AUTH_USER=${ADMIN_EMAIL}
-      - N8N_BASIC_AUTH_PASSWORD=${ADMIN_PASSWORD}
+      - N8N_BASIC_AUTH_USER=joney.ricardo@cmm.am.gov.br
+      - N8N_BASIC_AUTH_PASSWORD=Ricardo@1964
       - N8N_HOST=${N8N_DOMAIN}
       - N8N_PORT=5678
       - N8N_PROTOCOL=https
@@ -90,6 +90,8 @@ services:
       - N8N_METRICS=true
       - N8N_SECURE_COOKIE=true
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=false
+      - N8N_USER_FOLDER=/data
     volumes:
       - n8n_data:/data
     networks:
@@ -118,8 +120,8 @@ services:
     container_name: grafana
     restart: unless-stopped
     environment:
-      - GF_SECURITY_ADMIN_USER=${ADMIN_EMAIL}
-      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - GF_SECURITY_ADMIN_USER=joney.ricardo@cmm.am.gov.br
+      - GF_SECURITY_ADMIN_PASSWORD=Ricardo@1964
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_USERS_ALLOW_ORG_CREATE=false
       - GF_USERS_AUTO_ASSIGN_ORG=true
@@ -164,7 +166,7 @@ services:
 
   # ===== CHATWOOT COM CREDENCIAIS UNIFICADAS =====
   chatwoot_postgres:
-    image: postgres:17.5
+    image: pgvector/pgvector:pg17
     container_name: chatwoot_postgres
     restart: unless-stopped
     volumes:
@@ -228,16 +230,16 @@ services:
       - POSTGRES_USERNAME=chatwoot
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DATABASE=chatwoot
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@chatwoot_redis:6379
+      - REDIS_URL=redis://:${REDIS_PASSWORD_ENCODED}@chatwoot_redis:6379
       - SECRET_KEY_BASE=${CHATWOOT_SECRET_KEY_BASE}
       - RAILS_MASTER_KEY=${CHATWOOT_MASTER_KEY}
-      - MAILER_SENDER_EMAIL=${ADMIN_EMAIL}
+      - MAILER_SENDER_EMAIL=joney.ricardo@cmm.am.gov.br
       - SMTP_DOMAIN=cmm.am.gov.br
       - TZ=${TZ}
       - ENABLE_ACCOUNT_SIGNUP=true
       - CHATWOOT_INSTALLATION_ENV=docker
-      - SUPER_ADMIN_EMAIL=${ADMIN_EMAIL}
-      - SUPER_ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - SUPER_ADMIN_EMAIL=joney.ricardo@cmm.am.gov.br
+      - SUPER_ADMIN_PASSWORD=Ricardo@1964
       - RAILS_LOG_TO_STDOUT=true
       - RAILS_SERVE_STATIC_FILES=true
     volumes:
@@ -313,10 +315,10 @@ services:
       - POSTGRES_USERNAME=chatwoot
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DATABASE=chatwoot
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@chatwoot_redis:6379
+      - REDIS_URL=redis://:${REDIS_PASSWORD_ENCODED}@chatwoot_redis:6379
       - SECRET_KEY_BASE=${CHATWOOT_SECRET_KEY_BASE}
       - RAILS_MASTER_KEY=${CHATWOOT_MASTER_KEY}
-      - MAILER_SENDER_EMAIL=${ADMIN_EMAIL}
+      - MAILER_SENDER_EMAIL=joney.ricardo@cmm.am.gov.br
       - SMTP_DOMAIN=cmm.am.gov.br
       - TZ=${TZ}
       - ENABLE_ACCOUNT_SIGNUP=true
