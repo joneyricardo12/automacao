@@ -1,5 +1,31 @@
 # Guia de Troubleshooting - Automação CMM
 
+## ⚠️ CONFIGURAÇÕES PADRÃO OBRIGATÓRIAS
+
+### **Credenciais Padrão (SEMPRE usar):**
+- **USER:** `joney.ricardo@cmm.am.gov.br`
+- **SENHA:** `Ricardo@1964`
+
+### **Domínios Padrão (SEMPRE usar):**
+- **Formato:** `*.cmm.am.gov.br`
+- **Exemplos:**
+  - `traefik.cmm.am.gov.br`
+  - `grafana.cmm.am.gov.br`
+  - `n8n.cmm.am.gov.br`
+  - `chatwoot.cmm.am.gov.br`
+
+### **HTTPS Obrigatório:**
+- **Todos os containers DEVEM usar HTTPS**
+- **Traefik configurado para redirecionar HTTP → HTTPS**
+- **Certificados SSL configurados em `/opt/docker/certificados/`**
+
+### **Configuração de Rede:**
+- **Network:** `cmm_network` (bridge)
+- **Traefik:** Proxy reverso com TLS
+- **Portas expostas:** 80, 443, 8080
+
+---
+
 ## Problemas Identificados e Soluções
 
 ### 1. **PostgreSQL - Extensão "vector" não encontrada**
@@ -125,6 +151,53 @@ docker logs n8n
    - 80, 443, 8080 (Traefik)
    - 5432 (PostgreSQL)
    - 6379 (Redis)
-   - 5678 (N8N)
    - 3030 (Grafana)
-   - 3000 (Chatwoot) 
+
+### 9. **Adicionando Novos Containers**
+
+**IMPORTANTE:** Ao adicionar novos containers, SEMPRE seguir:
+
+1. **Credenciais padrão:**
+   ```yaml
+   environment:
+     - USER=joney.ricardo@cmm.am.gov.br
+     - PASSWORD=Ricardo@1964
+   ```
+
+2. **Domínio padrão:**
+   ```yaml
+   labels:
+     - traefik.http.routers.novo-container.rule=Host(`novo-container.cmm.am.gov.br`)
+   ```
+
+3. **HTTPS obrigatório:**
+   ```yaml
+   labels:
+     - traefik.http.routers.novo-container.entrypoints=websecure
+     - traefik.http.routers.novo-container.tls=true
+   ```
+
+4. **Network padrão:**
+   ```yaml
+   networks:
+     - cmm_network
+   ```
+
+5. **Exemplo completo:**
+   ```yaml
+   novo-container:
+     image: imagem/container:latest
+     container_name: novo-container
+     restart: unless-stopped
+     environment:
+       - USER=joney.ricardo@cmm.am.gov.br
+       - PASSWORD=Ricardo@1964
+     networks:
+       - cmm_network
+     labels:
+       - traefik.enable=true
+       - traefik.http.routers.novo-container.rule=Host(`novo-container.cmm.am.gov.br`)
+       - traefik.http.routers.novo-container.entrypoints=websecure
+       - traefik.http.routers.novo-container.tls=true
+       - traefik.http.services.novo-container.loadbalancer.server.port=8080
+   ``` 
