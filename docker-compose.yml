@@ -22,7 +22,7 @@ services:
       - --entrypoints.web.http.redirections.entrypoint.permanent=true
       - --providers.file.filename=/etc/traefik/dynamic.yml
       - --providers.file.watch=true
-      - --log.level=DEBUG
+      - --log.level=INFO
       - --accesslog=true
       - --global.sendAnonymousUsage=false
     ports:
@@ -38,54 +38,65 @@ services:
       - cmm_network
     labels:
       - traefik.enable=true
-      - traefik.http.routers.traefik-dashboard.rule=Host(`traefik.cmm.am.gov.br`)
+      - traefik.http.routers.traefik-dashboard.rule=Host(`${TRAEFIK_DOMAIN}`)
       - traefik.http.routers.traefik-dashboard.entrypoints=websecure
       - traefik.http.routers.traefik-dashboard.service=api@internal
       - traefik.http.routers.traefik-dashboard.tls=true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
 
   redis:
     image: redis:8
     container_name: redis
     restart: unless-stopped
-    command: redis-server --requirepass Ricardo@1964  # ✅ ATUALIZADO
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
     networks:
       - cmm_network
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "Ricardo@1964", "ping"]  # ✅ ATUALIZADO
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
 
   n8n:
     image: n8nio/n8n:latest
     container_name: n8n
     restart: unless-stopped
-    user: "0:0"
     environment:
       - DB_TYPE=sqlite
       - DB_SQLITE_DATABASE=/data/database.sqlite
       - N8N_BASIC_AUTH_ACTIVE=true
-      - N8N_BASIC_AUTH_USER=joney.ricardo@cmm.am.gov.br  # ✅ ATUALIZADO
-      - N8N_BASIC_AUTH_PASSWORD=Ricardo@1964  # ✅ ATUALIZADO
-      - N8N_HOST=n8n.cmm.am.gov.br
+      - N8N_BASIC_AUTH_USER=${ADMIN_EMAIL}
+      - N8N_BASIC_AUTH_PASSWORD=${ADMIN_PASSWORD}
+      - N8N_HOST=${N8N_DOMAIN}
       - N8N_PORT=5678
       - N8N_PROTOCOL=https
-      - WEBHOOK_URL=https://n8n.cmm.am.gov.br/
+      - WEBHOOK_URL=https://${N8N_DOMAIN}/
       - NODE_ENV=production
-      - GENERIC_TIMEZONE=America/Manaus
+      - GENERIC_TIMEZONE=${TZ}
       - N8N_LOG_LEVEL=info
       - N8N_METRICS=true
       - N8N_SECURE_COOKIE=true
-      - N8N_ENCRYPTION_KEY=n8n_encryption_key_cmm_2024_change_this_key_very_secure
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
     volumes:
       - n8n_data:/data
     networks:
       - cmm_network
     labels:
       - traefik.enable=true
-      - traefik.http.routers.n8n.rule=Host(`n8n.cmm.am.gov.br`)
+      - traefik.http.routers.n8n.rule=Host(`${N8N_DOMAIN}`)
       - traefik.http.routers.n8n.entrypoints=websecure
       - traefik.http.routers.n8n.tls=true
       - traefik.http.services.n8n.loadbalancer.server.port=5678
@@ -95,26 +106,32 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
 
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
     restart: unless-stopped
     environment:
-      - GF_SECURITY_ADMIN_USER=joney.ricardo@cmm.am.gov.br  # ✅ ATUALIZADO
-      - GF_SECURITY_ADMIN_PASSWORD=Ricardo@1964  # ✅ ATUALIZADO
+      - GF_SECURITY_ADMIN_USER=${ADMIN_EMAIL}
+      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_USERS_ALLOW_ORG_CREATE=false
       - GF_USERS_AUTO_ASSIGN_ORG=true
       - GF_USERS_AUTO_ASSIGN_ORG_ROLE=Viewer
-      - GF_SERVER_DOMAIN=grafana.cmm.am.gov.br
-      - GF_SERVER_ROOT_URL=https://grafana.cmm.am.gov.br
+      - GF_SERVER_DOMAIN=${GRAFANA_DOMAIN}
+      - GF_SERVER_ROOT_URL=https://${GRAFANA_DOMAIN}
       - GF_SERVER_SERVE_FROM_SUB_PATH=false
       - GF_SERVER_HTTP_PORT=3030
       - GF_SECURITY_COOKIE_SECURE=true
       - GF_SECURITY_COOKIE_SAMESITE=strict
       - GF_SECURITY_STRICT_TRANSPORT_SECURITY=true
-      - TZ=America/Manaus
+      - TZ=${TZ}
       - GF_DATABASE_TYPE=sqlite3
       - GF_DATABASE_PATH=/var/lib/grafana/grafana.db
       - GF_ANALYTICS_REPORTING_ENABLED=false
@@ -128,7 +145,7 @@ services:
       - cmm_network
     labels:
       - traefik.enable=true
-      - traefik.http.routers.grafana.rule=Host(`grafana.cmm.am.gov.br`)
+      - traefik.http.routers.grafana.rule=Host(`${GRAFANA_DOMAIN}`)
       - traefik.http.routers.grafana.entrypoints=websecure
       - traefik.http.routers.grafana.tls=true
       - traefik.http.services.grafana.loadbalancer.server.port=3030
@@ -138,6 +155,12 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
 
   # ===== CHATWOOT COM CREDENCIAIS UNIFICADAS =====
   chatwoot_postgres:
@@ -149,7 +172,7 @@ services:
     environment:
       - POSTGRES_DB=chatwoot
       - POSTGRES_USER=chatwoot
-      - POSTGRES_PASSWORD=Ricardo@1964  # ✅ ATUALIZADO
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     networks:
       - cmm_network
     healthcheck:
@@ -158,21 +181,33 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
 
   chatwoot_redis:
     image: redis:8
     container_name: chatwoot_redis
     restart: unless-stopped
-    command: ["redis-server", "--requirepass", "Ricardo@1964"]  # ✅ ATUALIZADO
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
     volumes:
       - chatwoot_redis_data:/data
     networks:
       - cmm_network
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "Ricardo@1964", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
 
   chatwoot_rails:
     image: chatwoot/chatwoot:latest
@@ -187,22 +222,22 @@ services:
       - NODE_ENV=production
       - RAILS_ENV=production
       - INSTALLATION_ENV=docker
-      - FRONTEND_URL=https://chatwoot.cmm.am.gov.br
+      - FRONTEND_URL=https://${CHATWOOT_DOMAIN}
       - FORCE_SSL=true
       - POSTGRES_HOST=chatwoot_postgres
       - POSTGRES_USERNAME=chatwoot
-      - POSTGRES_PASSWORD=Ricardo@1964  # ✅ ATUALIZADO
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DATABASE=chatwoot
-      - REDIS_URL=redis://:Ricardo@1964@chatwoot_redis:6379  # ✅ ATUALIZADO
-      - SECRET_KEY_BASE=chatwoot_secret_key_base_cmm_2024_super_secret_key_change_in_production_very_long_key_here_must_be_at_least_128_characters_long
-      - RAILS_MASTER_KEY=chatwoot_master_key_cmm_2024_change_this_key_also_very_secure
-      - MAILER_SENDER_EMAIL=joney.ricardo@cmm.am.gov.br  # ✅ ATUALIZADO
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@chatwoot_redis:6379
+      - SECRET_KEY_BASE=${CHATWOOT_SECRET_KEY_BASE}
+      - RAILS_MASTER_KEY=${CHATWOOT_MASTER_KEY}
+      - MAILER_SENDER_EMAIL=${ADMIN_EMAIL}
       - SMTP_DOMAIN=cmm.am.gov.br
-      - TZ=America/Manaus
+      - TZ=${TZ}
       - ENABLE_ACCOUNT_SIGNUP=true
       - CHATWOOT_INSTALLATION_ENV=docker
-      - SUPER_ADMIN_EMAIL=joney.ricardo@cmm.am.gov.br  # ✅ ATUALIZADO
-      - SUPER_ADMIN_PASSWORD=Ricardo@1964  # ✅ ATUALIZADO
+      - SUPER_ADMIN_EMAIL=${ADMIN_EMAIL}
+      - SUPER_ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - RAILS_LOG_TO_STDOUT=true
       - RAILS_SERVE_STATIC_FILES=true
     volumes:
@@ -227,7 +262,7 @@ services:
         # Aguarda Redis
         echo "⏳ Testando Redis..."
         for i in $(seq 1 30); do
-          if redis-cli -h chatwoot_redis -a "Ricardo@1964" ping >/dev/null 2>&1; then
+          if redis-cli -h chatwoot_redis -a "${REDIS_PASSWORD}" ping >/dev/null 2>&1; then
             echo "✅ Redis conectado!"
             break
           fi
@@ -243,13 +278,19 @@ services:
       '
     labels:
       - traefik.enable=true
-      - traefik.http.routers.chatwoot.rule=Host(`chatwoot.cmm.am.gov.br`)
+      - traefik.http.routers.chatwoot.rule=Host(`${CHATWOOT_DOMAIN}`)
       - traefik.http.routers.chatwoot.entrypoints=websecure
       - traefik.http.routers.chatwoot.tls=true
       - traefik.http.services.chatwoot.loadbalancer.server.port=3000
       - traefik.http.middlewares.chatwoot-headers.headers.customrequestheaders.X-Forwarded-Proto=https
       - traefik.http.middlewares.chatwoot-headers.headers.customrequestheaders.X-Forwarded-Ssl=on
       - traefik.http.routers.chatwoot.middlewares=chatwoot-headers
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
 
   chatwoot_sidekiq:
     image: chatwoot/chatwoot:latest
@@ -266,18 +307,18 @@ services:
       - NODE_ENV=production
       - RAILS_ENV=production
       - INSTALLATION_ENV=docker
-      - FRONTEND_URL=https://chatwoot.cmm.am.gov.br
+      - FRONTEND_URL=https://${CHATWOOT_DOMAIN}
       - FORCE_SSL=true
       - POSTGRES_HOST=chatwoot_postgres
       - POSTGRES_USERNAME=chatwoot
-      - POSTGRES_PASSWORD=Ricardo@1964  # ✅ ATUALIZADO
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DATABASE=chatwoot
-      - REDIS_URL=redis://:Ricardo@1964@chatwoot_redis:6379  # ✅ ATUALIZADO
-      - SECRET_KEY_BASE=chatwoot_secret_key_base_cmm_2024_super_secret_key_change_in_production_very_long_key_here_must_be_at_least_128_characters_long
-      - RAILS_MASTER_KEY=chatwoot_master_key_cmm_2024_change_this_key_also_very_secure
-      - MAILER_SENDER_EMAIL=joney.ricardo@cmm.am.gov.br  # ✅ ATUALIZADO
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@chatwoot_redis:6379
+      - SECRET_KEY_BASE=${CHATWOOT_SECRET_KEY_BASE}
+      - RAILS_MASTER_KEY=${CHATWOOT_MASTER_KEY}
+      - MAILER_SENDER_EMAIL=${ADMIN_EMAIL}
       - SMTP_DOMAIN=cmm.am.gov.br
-      - TZ=America/Manaus
+      - TZ=${TZ}
       - ENABLE_ACCOUNT_SIGNUP=true
       - RAILS_LOG_TO_STDOUT=true
     volumes:
@@ -291,6 +332,12 @@ services:
         echo "🚀 Iniciando Sidekiq..."
         bundle exec sidekiq -C config/sidekiq.yml
       '
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
 
 volumes:
   n8n_data:
