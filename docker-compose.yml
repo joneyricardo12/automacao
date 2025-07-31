@@ -83,6 +83,7 @@ services:
       - TZ=${TZ}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - postgres-initdb:/docker-entrypoint-initdb.d/
     networks:
       - cmm_network
     healthcheck:
@@ -97,36 +98,6 @@ services:
           memory: 1G
         reservations:
           memory: 512M
-
-  postgres-init:
-    image: postgres:17.5
-    container_name: postgres-init
-    restart: "no"
-    environment:
-      - PGHOST=postgres
-      - PGPORT=5432
-      - PGDATABASE=cmm_database
-      - PGUSER=joney.ricardo@cmm.am.gov.br
-      - PGPASSWORD=Ricardo@1964
-    networks:
-      - cmm_network
-    depends_on:
-      postgres:
-        condition: service_healthy
-    command: >
-      sh -c "
-        echo 'Criando banco de dados N8N...' &&
-        psql -c \"CREATE DATABASE \\\"N8N\\\";\" &&
-        psql -d \"N8N\" -c \"GRANT ALL PRIVILEGES ON DATABASE \\\"N8N\\\" TO \\\"joney.ricardo@cmm.am.gov.br\\\";\" &&
-        psql -d \"N8N\" -c \"GRANT ALL ON SCHEMA public TO \\\"joney.ricardo@cmm.am.gov.br\\\";\" &&
-        psql -d \"N8N\" -c \"GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO \\\"joney.ricardo@cmm.am.gov.br\\\";\" &&
-        psql -d \"N8N\" -c \"GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO \\\"joney.ricardo@cmm.am.gov.br\\\";\" &&
-        psql -d \"N8N\" -c \"GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO \\\"joney.ricardo@cmm.am.gov.br\\\";\" &&
-        psql -d \"N8N\" -c \"ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO \\\"joney.ricardo@cmm.am.gov.br\\\";\" &&
-        psql -d \"N8N\" -c \"ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO \\\"joney.ricardo@cmm.am.gov.br\\\";\" &&
-        psql -d \"N8N\" -c \"ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO \\\"joney.ricardo@cmm.am.gov.br\\\";\" &&
-        echo 'Banco N8N criado com sucesso!'
-      "
 
   n8n:
     image: n8nio/n8n:latest
@@ -161,8 +132,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      postgres-init:
-        condition: service_completed_successfully
     labels:
       - traefik.enable=true
       - traefik.http.routers.n8n.rule=Host(`n8n.cmm.am.gov.br`)
@@ -245,4 +214,6 @@ volumes:
   postgres_data:
     driver: local
   n8n_data:
+    driver: local
+  postgres-initdb:
     driver: local
