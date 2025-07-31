@@ -74,6 +74,8 @@ services:
     image: postgres:17.5
     container_name: postgres
     restart: unless-stopped
+    ports:
+      - "5432:5432"
     environment:
       - POSTGRES_DB=cmm_database
       - POSTGRES_USER=joney.ricardo@cmm.am.gov.br
@@ -89,6 +91,90 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  postgres-init:
+    image: postgres:17.5
+    container_name: postgres-init
+    restart: "no"
+    environment:
+      - PGHOST=postgres
+      - PGPORT=5432
+      - PGDATABASE=cmm_database
+      - PGUSER=joney.ricardo@cmm.am.gov.br
+      - PGPASSWORD=Ricardo@1964
+    networks:
+      - cmm_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Criando banco de dados N8N...' &&
+        psql -c \"CREATE DATABASE \\\"N8N\\\";\" &&
+        psql -d \"N8N\" -c \"GRANT ALL PRIVILEGES ON DATABASE \\\"N8N\\\" TO \\\"joney.ricardo@cmm.am.gov.br\\\";\" &&
+        psql -d \"N8N\" -c \"GRANT ALL ON SCHEMA public TO \\\"joney.ricardo@cmm.am.gov.br\\\";\" &&
+        psql -d \"N8N\" -c \"GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO \\\"joney.ricardo@cmm.am.gov.br\\\";\" &&
+        psql -d \"N8N\" -c \"GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO \\\"joney.ricardo@cmm.am.gov.br\\\";\" &&
+        psql -d \"N8N\" -c \"GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO \\\"joney.ricardo@cmm.am.gov.br\\\";\" &&
+        psql -d \"N8N\" -c \"ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO \\\"joney.ricardo@cmm.am.gov.br\\\";\" &&
+        psql -d \"N8N\" -c \"ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO \\\"joney.ricardo@cmm.am.gov.br\\\";\" &&
+        psql -d \"N8N\" -c \"ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO \\\"joney.ricardo@cmm.am.gov.br\\\";\" &&
+        echo 'Banco N8N criado com sucesso!'
+      "
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=N8N
+      - DB_POSTGRESDB_USER=joney.ricardo@cmm.am.gov.br
+      - DB_POSTGRESDB_PASSWORD=Ricardo@1964
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=joney.ricardo@cmm.am.gov.br
+      - N8N_BASIC_AUTH_PASSWORD=Ricardo@1964
+      - N8N_HOST=n8n.cmm.am.gov.br
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://n8n.cmm.am.gov.br/
+      - NODE_ENV=production
+      - GENERIC_TIMEZONE=${TZ}
+      - N8N_LOG_LEVEL=info
+      - N8N_METRICS=true
+      - N8N_SECURE_COOKIE=true
+      - N8N_ENCRYPTION_KEY=Ricardo@1964
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=false
+      - N8N_USER_FOLDER=/data
+    volumes:
+      - n8n_data:/data
+    networks:
+      - cmm_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      postgres-init:
+        condition: service_completed_successfully
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.n8n.rule=Host(`n8n.cmm.am.gov.br`)
+      - traefik.http.routers.n8n.entrypoints=websecure
+      - traefik.http.routers.n8n.tls=true
+      - traefik.http.services.n8n.loadbalancer.server.port=5678
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     deploy:
       resources:
         limits:
@@ -157,4 +243,6 @@ volumes:
   redis_data:
     driver: local
   postgres_data:
+    driver: local
+  n8n_data:
     driver: local
