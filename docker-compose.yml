@@ -14,7 +14,7 @@ services:
       - --api.dashboard=true
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
-      - --providers.docker.network=cmm_network
+      - --providers.docker.network=automacao_cmm_network
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
       - --entrypoints.web.http.redirections.entrypoint.to=websecure
@@ -22,7 +22,7 @@ services:
       - --entrypoints.web.http.redirections.entrypoint.permanent=true
       - --providers.file.filename=/etc/traefik/dynamic.yml
       - --providers.file.watch=true
-      - --log.level=INFO
+      - --log.level=DEBUG
       - --accesslog=true
       - --global.sendAnonymousUsage=false
     ports:
@@ -38,138 +38,77 @@ services:
       - cmm_network
     labels:
       - traefik.enable=true
-      - traefik.http.routers.traefik-dashboard.rule=Host(`${TRAEFIK_DOMAIN}`)
+      - traefik.http.routers.traefik-dashboard.rule=Host(`traefik.cmm.am.gov.br`)
       - traefik.http.routers.traefik-dashboard.entrypoints=websecure
       - traefik.http.routers.traefik-dashboard.service=api@internal
       - traefik.http.routers.traefik-dashboard.tls=true
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
 
   redis:
     image: redis:8
     container_name: redis
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    command: redis-server --requirepass redis@cmm
     volumes:
       - redis_data:/data
     networks:
       - cmm_network
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "redis@cmm", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-        reservations:
-          memory: 128M
-
-  postgres:
-    image: postgres:17.5
-    container_name: postgres
-    restart: unless-stopped
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_DB=cmm_database
-      - POSTGRES_USER=joney.ricardo@cmm.am.gov.br
-      - POSTGRES_PASSWORD=Ricardo@1964
-      - TZ=${TZ}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - postgres-initdb:/docker-entrypoint-initdb.d/
-    networks:
-      - cmm_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U joney.ricardo@cmm.am.gov.br -d cmm_database"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-        reservations:
-          memory: 512M
 
   n8n:
     image: n8nio/n8n:latest
     container_name: n8n
     restart: unless-stopped
+    user: "0:0"
     environment:
-      - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_HOST=postgres
-      - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_DATABASE=N8N
-      - DB_POSTGRESDB_USER=joney.ricardo@cmm.am.gov.br
-      - DB_POSTGRESDB_PASSWORD=Ricardo@1964
+      - DB_TYPE=sqlite
+      - DB_SQLITE_DATABASE=/data/database.sqlite
       - N8N_BASIC_AUTH_ACTIVE=true
-      - N8N_BASIC_AUTH_USER=joney.ricardo@cmm.am.gov.br
-      - N8N_BASIC_AUTH_PASSWORD=Ricardo@1964
+      - N8N_BASIC_AUTH_USER=admin@cmm.am.gov.br
+      - N8N_BASIC_AUTH_PASSWORD=n8n
       - N8N_HOST=n8n.cmm.am.gov.br
       - N8N_PORT=5678
       - N8N_PROTOCOL=https
       - WEBHOOK_URL=https://n8n.cmm.am.gov.br/
       - NODE_ENV=production
-      - GENERIC_TIMEZONE=${TZ}
+      - GENERIC_TIMEZONE=America/Manaus
       - N8N_LOG_LEVEL=info
       - N8N_METRICS=true
       - N8N_SECURE_COOKIE=true
-      - N8N_ENCRYPTION_KEY=Ricardo@1964
-      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=false
-      - N8N_USER_FOLDER=/data
+      - N8N_ENCRYPTION_KEY=n8n_encryption_key_cmm_2024_change_this_key_very_secure
     volumes:
       - n8n_data:/data
     networks:
       - cmm_network
-    depends_on:
-      postgres:
-        condition: service_healthy
     labels:
       - traefik.enable=true
       - traefik.http.routers.n8n.rule=Host(`n8n.cmm.am.gov.br`)
       - traefik.http.routers.n8n.entrypoints=websecure
       - traefik.http.routers.n8n.tls=true
       - traefik.http.services.n8n.loadbalancer.server.port=5678
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5678/healthz"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-        reservations:
-          memory: 512M
 
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
     restart: unless-stopped
     environment:
-      - GF_SECURITY_ADMIN_USER=joney.ricardo@cmm.am.gov.br
-      - GF_SECURITY_ADMIN_PASSWORD=Ricardo@1964
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=grafana@cmm
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_USERS_ALLOW_ORG_CREATE=false
       - GF_USERS_AUTO_ASSIGN_ORG=true
       - GF_USERS_AUTO_ASSIGN_ORG_ROLE=Viewer
-      - GF_SERVER_DOMAIN=${GRAFANA_DOMAIN}
-      - GF_SERVER_ROOT_URL=https://${GRAFANA_DOMAIN}
+      - GF_SERVER_DOMAIN=grafana.cmm.am.gov.br
+      - GF_SERVER_ROOT_URL=https://grafana.cmm.am.gov.br
       - GF_SERVER_SERVE_FROM_SUB_PATH=false
       - GF_SERVER_HTTP_PORT=3030
       - GF_SECURITY_COOKIE_SECURE=true
       - GF_SECURITY_COOKIE_SAMESITE=strict
       - GF_SECURITY_STRICT_TRANSPORT_SECURITY=true
-      - TZ=${TZ}
+      - TZ=America/Manaus
       - GF_DATABASE_TYPE=sqlite3
       - GF_DATABASE_PATH=/var/lib/grafana/grafana.db
       - GF_ANALYTICS_REPORTING_ENABLED=false
@@ -183,26 +122,151 @@ services:
       - cmm_network
     labels:
       - traefik.enable=true
-      - traefik.http.routers.grafana.rule=Host(`${GRAFANA_DOMAIN}`)
+      - traefik.http.routers.grafana.rule=Host(`grafana.cmm.am.gov.br`)
       - traefik.http.routers.grafana.entrypoints=websecure
       - traefik.http.routers.grafana.tls=true
       - traefik.http.services.grafana.loadbalancer.server.port=3030
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3030/api/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
 
+  # ===== CHATWOOT SEM HEALTHCHECK =====
+  chatwoot_postgres:
+    image: postgres:17.5
+    container_name: chatwoot_postgres
+    restart: unless-stopped
+    volumes:
+      - chatwoot_postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=chatwoot
+      - POSTGRES_USER=chatwoot
+      - POSTGRES_PASSWORD=chatwoot@cmm
+    networks:
+      - cmm_network
+    # ✅ SEM HEALTHCHECK
 
+  chatwoot_redis:
+    image: redis:8
+    container_name: chatwoot_redis
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "chatwootredis"]
+    volumes:
+      - chatwoot_redis_data:/data
+    networks:
+      - cmm_network
+    # ✅ SEM HEALTHCHECK
+
+  chatwoot_rails:
+    image: chatwoot/chatwoot:latest
+    container_name: chatwoot_rails
+    restart: unless-stopped
+    depends_on:
+      - chatwoot_postgres  # ✅ DEPENDÊNCIA SIMPLES (sem condition)
+      - chatwoot_redis
+    environment:
+      - NODE_ENV=production
+      - RAILS_ENV=production
+      - INSTALLATION_ENV=docker
+      - FRONTEND_URL=https://chatwoot.cmm.am.gov.br
+      - FORCE_SSL=true
+      - POSTGRES_HOST=chatwoot_postgres
+      - POSTGRES_USERNAME=chatwoot
+      - POSTGRES_PASSWORD=chatwoot@cmm
+      - POSTGRES_DATABASE=chatwoot
+      - REDIS_URL=redis://:chatwootredis@chatwoot_redis:6379
+      - SECRET_KEY_BASE=chatwoot_secret_key_base_cmm_2024_super_secret_key_change_in_production_very_long_key_here_must_be_at_least_128_characters_long
+      - RAILS_MASTER_KEY=chatwoot_master_key_cmm_2024_change_this_key_also_very_secure
+      - MAILER_SENDER_EMAIL=chatwoot@cmm.am.gov.br
+      - SMTP_DOMAIN=cmm.am.gov.br
+      - TZ=America/Manaus
+      - ENABLE_ACCOUNT_SIGNUP=false
+      - RAILS_LOG_TO_STDOUT=true
+      - RAILS_SERVE_STATIC_FILES=true
+    volumes:
+      - chatwoot_data:/app/storage
+    networks:
+      - cmm_network
+    # ✅ SCRIPT COM LOOP DE ESPERA ROBUSTO
+    entrypoint: |
+      sh -c '
+        echo "🔄 Aguardando PostgreSQL e Redis..."
+        
+        # Aguarda PostgreSQL
+        echo "⏳ Testando PostgreSQL..."
+        for i in $(seq 1 60); do
+          if pg_isready -h chatwoot_postgres -U chatwoot >/dev/null 2>&1; then
+            echo "✅ PostgreSQL conectado!"
+            break
+          fi
+          echo "⏳ Tentativa $$i/60 - Aguardando PostgreSQL..."
+          sleep 5
+        done
+        
+        # Aguarda Redis
+        echo "⏳ Testando Redis..."
+        for i in $(seq 1 30); do
+          if redis-cli -h chatwoot_redis -a chatwootredis ping >/dev/null 2>&1; then
+            echo "✅ Redis conectado!"
+            break
+          fi
+          echo "⏳ Tentativa $$i/30 - Aguardando Redis..."
+          sleep 3
+        done
+        
+        echo "🔄 Preparando banco de dados..."
+        bundle exec rails db:chatwoot_prepare || bundle exec rails db:migrate || echo "⚠️ Falha na preparação do banco"
+        
+        echo "✅ Iniciando servidor Rails..."
+        bundle exec rails s -p 3000 -b 0.0.0.0
+      '
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.chatwoot.rule=Host(`chatwoot.cmm.am.gov.br`)
+      - traefik.http.routers.chatwoot.entrypoints=websecure
+      - traefik.http.routers.chatwoot.tls=true
+      - traefik.http.services.chatwoot.loadbalancer.server.port=3000
+      - traefik.http.middlewares.chatwoot-headers.headers.customrequestheaders.X-Forwarded-Proto=https
+      - traefik.http.middlewares.chatwoot-headers.headers.customrequestheaders.X-Forwarded-Ssl=on
+      - traefik.http.routers.chatwoot.middlewares=chatwoot-headers
+
+  chatwoot_sidekiq:
+    image: chatwoot/chatwoot:latest
+    container_name: chatwoot_sidekiq
+    restart: unless-stopped
+    depends_on:
+      - chatwoot_postgres  # ✅ DEPENDÊNCIA SIMPLES
+      - chatwoot_redis
+      - chatwoot_rails     # ✅ Aguarda o Rails preparar primeiro
+    environment:
+      - NODE_ENV=production
+      - RAILS_ENV=production
+      - INSTALLATION_ENV=docker
+      - FRONTEND_URL=https://chatwoot.cmm.am.gov.br
+      - FORCE_SSL=true
+      - POSTGRES_HOST=chatwoot_postgres
+      - POSTGRES_USERNAME=chatwoot
+      - POSTGRES_PASSWORD=chatwoot@cmm
+      - POSTGRES_DATABASE=chatwoot
+      - REDIS_URL=redis://:chatwootredis@chatwoot_redis:6379
+      - SECRET_KEY_BASE=chatwoot_secret_key_base_cmm_2024_super_secret_key_change_in_production_very_long_key_here_must_be_at_least_128_characters_long
+      - RAILS_MASTER_KEY=chatwoot_master_key_cmm_2024_change_this_key_also_very_secure
+      - MAILER_SENDER_EMAIL=chatwoot@cmm.am.gov.br
+      - SMTP_DOMAIN=cmm.am.gov.br
+      - TZ=America/Manaus
+      - ENABLE_ACCOUNT_SIGNUP=false
+      - RAILS_LOG_TO_STDOUT=true
+    volumes:
+      - chatwoot_data:/app/storage
+    networks:
+      - cmm_network
+    entrypoint: |
+      sh -c '
+        echo "⏳ Aguardando Rails preparar banco..."
+        sleep 90
+        echo "🚀 Iniciando Sidekiq..."
+        bundle exec sidekiq -C config/sidekiq.yml
+      '
 
 volumes:
+  n8n_data:
+    driver: local
   grafana_data:
     driver: local
   grafana_logs:
@@ -211,9 +275,9 @@ volumes:
     driver: local
   redis_data:
     driver: local
-  postgres_data:
+  chatwoot_postgres_data:
     driver: local
-  n8n_data:
+  chatwoot_redis_data:
     driver: local
-  postgres-initdb:
+  chatwoot_data:
     driver: local
