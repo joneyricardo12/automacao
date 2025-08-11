@@ -268,18 +268,25 @@ services:
     image: atendai/evolution-api:latest
     container_name: evolution_api
     restart: unless-stopped
-    # Porta removida - usando apenas Traefik
     environment:
       - AUTHENTICATION_API_KEY=Ricardo@1964
       - TZ=America/Manaus
+      - PORT=7000
     networks:
       - cmm_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     labels:
-      - traefik.enable=true
-      - traefik.http.routers.evolution.rule=Host(`evolution.cmm.am.gov.br`)
-      - traefik.http.routers.evolution.entrypoints=websecure
-      - traefik.http.routers.evolution.tls=true
-      - traefik.http.services.evolution.loadbalancer.server.port=8080
+      - "traefik.enable=true"
+      - "traefik.http.routers.evolution.rule=Host(`evolution.cmm.am.gov.br`)"
+      - "traefik.http.routers.evolution.entrypoints=websecure"
+      - "traefik.http.routers.evolution.tls=true"
+      - "traefik.http.services.evolution.loadbalancer.server.port=7000"
+      - "traefik.docker.network=cmm_network"
 
 volumes:
   n8n_data:
