@@ -268,8 +268,7 @@ services:
     image: atendai/evolution-api:latest
     container_name: evolution_api
     restart: unless-stopped
-    ports:
-      - "7000:8080"
+    # Porta removida - usando apenas Traefik
     environment:
       - AUTHENTICATION_API_KEY=Ricardo@1964
       - TZ=America/Manaus
@@ -277,10 +276,10 @@ services:
       - cmm_network
     labels:
       - traefik.enable=true
-      - traefik.http.routers.evolution-api.rule=Host(`evolution.cmm.am.gov.br`)
-      - traefik.http.routers.evolution-api.entrypoints=websecure
-      - traefik.http.routers.evolution-api.tls=true
-      - traefik.http.services.evolution-api.loadbalancer.server.port=8080
+      - traefik.http.routers.evolution.rule=Host(`evolution.cmm.am.gov.br`)
+      - traefik.http.routers.evolution.entrypoints=websecure
+      - traefik.http.routers.evolution.tls=true
+      - traefik.http.services.evolution.loadbalancer.server.port=8080
 
 volumes:
   n8n_data:
