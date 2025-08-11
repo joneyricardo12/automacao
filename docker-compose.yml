@@ -47,13 +47,13 @@ services:
     image: redis:8
     container_name: redis
     restart: unless-stopped
-    command: redis-server --requirepass redis@cmm
+    command: redis-server --requirepass Ricardo@1964
     volumes:
       - redis_data:/data
     networks:
       - cmm_network
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "redis@cmm", "ping"]
+      test: ["CMD", "redis-cli", "-a", "Ricardo@1964", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -67,8 +67,8 @@ services:
       - DB_TYPE=sqlite
       - DB_SQLITE_DATABASE=/data/database.sqlite
       - N8N_BASIC_AUTH_ACTIVE=true
-      - N8N_BASIC_AUTH_USER=admin@cmm.am.gov.br
-      - N8N_BASIC_AUTH_PASSWORD=n8n
+      - N8N_BASIC_AUTH_USER=Admin
+      - N8N_BASIC_AUTH_PASSWORD=Ricardo@1964
       - N8N_HOST=n8n.cmm.am.gov.br
       - N8N_PORT=5678
       - N8N_PROTOCOL=https
@@ -95,8 +95,8 @@ services:
     container_name: grafana
     restart: unless-stopped
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=grafana@cmm
+      - GF_SECURITY_ADMIN_USER=Admin
+      - GF_SECURITY_ADMIN_PASSWORD=Ricardo@1964
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_USERS_ALLOW_ORG_CREATE=false
       - GF_USERS_AUTO_ASSIGN_ORG=true
@@ -136,8 +136,8 @@ services:
       - chatwoot_postgres_data:/var/lib/postgresql/data
     environment:
       - POSTGRES_DB=chatwoot
-      - POSTGRES_USER=chatwoot
-      - POSTGRES_PASSWORD=chatwoot@cmm
+      - POSTGRES_USER=Admin
+      - POSTGRES_PASSWORD=Ricardo@1964
     networks:
       - cmm_network
     # ✅ SEM HEALTHCHECK
@@ -146,7 +146,7 @@ services:
     image: redis:8
     container_name: chatwoot_redis
     restart: unless-stopped
-    command: ["redis-server", "--requirepass", "chatwootredis"]
+    command: ["redis-server", "--requirepass", "Ricardo@1964"]
     volumes:
       - chatwoot_redis_data:/data
     networks:
@@ -167,10 +167,10 @@ services:
       - FRONTEND_URL=https://chatwoot.cmm.am.gov.br
       - FORCE_SSL=true
       - POSTGRES_HOST=chatwoot_postgres
-      - POSTGRES_USERNAME=chatwoot
-      - POSTGRES_PASSWORD=chatwoot@cmm
+      - POSTGRES_USERNAME=Admin
+      - POSTGRES_PASSWORD=Ricardo@1964
       - POSTGRES_DATABASE=chatwoot
-      - REDIS_URL=redis://:chatwootredis@chatwoot_redis:6379
+      - REDIS_URL=redis://:Ricardo@1964@chatwoot_redis:6379
       - SECRET_KEY_BASE=chatwoot_secret_key_base_cmm_2024_super_secret_key_change_in_production_very_long_key_here_must_be_at_least_128_characters_long
       - RAILS_MASTER_KEY=chatwoot_master_key_cmm_2024_change_this_key_also_very_secure
       - MAILER_SENDER_EMAIL=chatwoot@cmm.am.gov.br
@@ -191,7 +191,7 @@ services:
         # Aguarda PostgreSQL
         echo "⏳ Testando PostgreSQL..."
         for i in $(seq 1 60); do
-          if pg_isready -h chatwoot_postgres -U chatwoot >/dev/null 2>&1; then
+          if pg_isready -h chatwoot_postgres -U Admin >/dev/null 2>&1; then
             echo "✅ PostgreSQL conectado!"
             break
           fi
@@ -202,7 +202,7 @@ services:
         # Aguarda Redis
         echo "⏳ Testando Redis..."
         for i in $(seq 1 30); do
-          if redis-cli -h chatwoot_redis -a chatwootredis ping >/dev/null 2>&1; then
+          if redis-cli -h chatwoot_redis -a Ricardo@1964 ping >/dev/null 2>&1; then
             echo "✅ Redis conectado!"
             break
           fi
@@ -241,10 +241,10 @@ services:
       - FRONTEND_URL=https://chatwoot.cmm.am.gov.br
       - FORCE_SSL=true
       - POSTGRES_HOST=chatwoot_postgres
-      - POSTGRES_USERNAME=chatwoot
-      - POSTGRES_PASSWORD=chatwoot@cmm
+      - POSTGRES_USERNAME=Admin
+      - POSTGRES_PASSWORD=Ricardo@1964
       - POSTGRES_DATABASE=chatwoot
-      - REDIS_URL=redis://:chatwootredis@chatwoot_redis:6379
+      - REDIS_URL=redis://:Ricardo@1964@chatwoot_redis:6379
       - SECRET_KEY_BASE=chatwoot_secret_key_base_cmm_2024_super_secret_key_change_in_production_very_long_key_here_must_be_at_least_128_characters_long
       - RAILS_MASTER_KEY=chatwoot_master_key_cmm_2024_change_this_key_also_very_secure
       - MAILER_SENDER_EMAIL=chatwoot@cmm.am.gov.br
