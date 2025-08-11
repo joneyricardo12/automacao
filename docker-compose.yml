@@ -170,7 +170,7 @@ services:
       - POSTGRES_USERNAME=Admin
       - POSTGRES_PASSWORD=Ricardo@1964
       - POSTGRES_DATABASE=chatwoot
-      - REDIS_URL=redis://:Ricardo@1964@chatwoot_redis:6379
+      - REDIS_URL=redis://:Ricardo%401964@chatwoot_redis:6379
       - SECRET_KEY_BASE=chatwoot_secret_key_base_cmm_2024_super_secret_key_change_in_production_very_long_key_here_must_be_at_least_128_characters_long
       - RAILS_MASTER_KEY=chatwoot_master_key_cmm_2024_change_this_key_also_very_secure
       - MAILER_SENDER_EMAIL=chatwoot@cmm.am.gov.br
@@ -202,7 +202,7 @@ services:
         # Aguarda Redis
         echo "⏳ Testando Redis..."
         for i in $(seq 1 30); do
-          if redis-cli -h chatwoot_redis -a Ricardo@1964 ping >/dev/null 2>&1; then
+          if redis-cli -h chatwoot_redis -a "Ricardo@1964" ping >/dev/null 2>&1; then
             echo "✅ Redis conectado!"
             break
           fi
@@ -244,7 +244,7 @@ services:
       - POSTGRES_USERNAME=Admin
       - POSTGRES_PASSWORD=Ricardo@1964
       - POSTGRES_DATABASE=chatwoot
-      - REDIS_URL=redis://:Ricardo@1964@chatwoot_redis:6379
+      - REDIS_URL=redis://:Ricardo%401964@chatwoot_redis:6379
       - SECRET_KEY_BASE=chatwoot_secret_key_base_cmm_2024_super_secret_key_change_in_production_very_long_key_here_must_be_at_least_128_characters_long
       - RAILS_MASTER_KEY=chatwoot_master_key_cmm_2024_change_this_key_also_very_secure
       - MAILER_SENDER_EMAIL=chatwoot@cmm.am.gov.br
