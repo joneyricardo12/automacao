@@ -134,6 +134,7 @@ services:
     restart: unless-stopped
     volumes:
       - chatwoot_postgres_data:/var/lib/postgresql/data
+      - ./postgres-initdb:/docker-entrypoint-initdb.d
     environment:
       - POSTGRES_DB=chatwoot
       - POSTGRES_USER=Admin
@@ -265,15 +266,29 @@ services:
       '
 
   evolution_api:
-    image: atendai/evolution-api:latest
+    image: evoapicloud/evolution-api:latest
     container_name: evolution_api
     restart: unless-stopped
+    depends_on:
+      - chatwoot_postgres
     environment:
       - AUTHENTICATION_API_KEY=Ricardo@1964
       - TZ=America/Manaus
       - PORT=7000
+      - DATABASE_ENABLED=true
+      - DATABASE_CONNECTION=postgres
+      - DATABASE_HOST=chatwoot_postgres
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=EVOLUTION
+      - DATABASE_USERNAME=Admin
+      - DATABASE_PASSWORD=Ricardo@1964
+      - REDIS_ENABLED=true
+      - REDIS_URI=redis://:Ricardo%401964@redis:6379
+      - REDIS_DB=1
     networks:
       - cmm_network
+    ports:
+      - "7000:7000"  # Temporário para debug
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7000"]
       interval: 30s
@@ -287,6 +302,7 @@ services:
       - "traefik.http.routers.evolution.tls=true"
       - "traefik.http.services.evolution.loadbalancer.server.port=7000"
       - "traefik.docker.network=cmm_network"
+      - "traefik.http.routers.evolution.priority=100"
 
 volumes:
   n8n_data:
