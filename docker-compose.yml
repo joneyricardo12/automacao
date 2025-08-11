@@ -129,7 +129,7 @@ services:
 
   # ===== CHATWOOT SEM HEALTHCHECK =====
   chatwoot_postgres:
-    image: postgres:17.5
+    image: pgvector/pgvector:pg17
     container_name: chatwoot_postgres
     restart: unless-stopped
     volumes:
