@@ -264,6 +264,24 @@ services:
         bundle exec sidekiq -C config/sidekiq.yml
       '
 
+  evolution_api:
+    image: atendai/evolution-api:latest
+    container_name: evolution_api
+    restart: unless-stopped
+    ports:
+      - "7000:8080"
+    environment:
+      - AUTHENTICATION_API_KEY=Ricardo@1964
+      - TZ=America/Manaus
+    networks:
+      - cmm_network
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.evolution-api.rule=Host(`evolution.cmm.am.gov.br`)
+      - traefik.http.routers.evolution-api.entrypoints=websecure
+      - traefik.http.routers.evolution-api.tls=true
+      - traefik.http.services.evolution-api.loadbalancer.server.port=8080
+
 volumes:
   n8n_data:
     driver: local
