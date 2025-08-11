@@ -301,7 +301,11 @@ services:
       - "traefik.http.routers.evolution.entrypoints=websecure"
       - "traefik.http.routers.evolution.tls=true"
       - "traefik.http.services.evolution.loadbalancer.server.port=7000"
-      - "traefik.docker.network=cmm_network"
+      - "traefik.docker.network=automacao_cmm_network"
+      - "traefik.http.middlewares.evolution-redirect.redirectregex.regex=^/$"
+      - "traefik.http.middlewares.evolution-redirect.redirectregex.replacement=/docs"
+      - "traefik.http.middlewares.evolution-redirect.redirectregex.permanent=true"
+      - "traefik.http.routers.evolution.middlewares=evolution-redirect"
       - "traefik.http.routers.evolution.priority=100"
 
 volumes:
